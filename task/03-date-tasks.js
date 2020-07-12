@@ -76,11 +76,13 @@ function isLeapYear(date) {
  *    Date(2000,1,1,10,0,0),  Date(2000,1,1,15,20,10,453)   => "05:20:10.453"
  */
 function timeSpanToString(startDate, endDate) {
-   var start = new Date(startDate);
-   var end = new Date(endDate);
-   var result = new Date(end.getTime() - start.getTime()).toISOString().slice(11, -1);
-
-   return result;
+   let date =  new Date(endDate.getTime() - startDate.getTime());
+   let hours = Math.floor(date / 1000 / 60 / 60);
+   let minutes = Math.floor((date - hours * 1000 * 60 * 60) / 1000 / 60);
+   let seconds =  Math.floor((date - hours * 1000 * 60 * 60 - minutes * 1000 * 60) / 1000);
+   let miliseconds = Math.floor(date - hours * 1000 * 60 * 60 - minutes * 1000 * 60 - seconds * 1000);
+   let res = ('0' + hours ).slice(-2) + ':' + ('0' + minutes).slice(-2) + ':' + ('0' + seconds).slice(-2) + '.' + ('00' + miliseconds).slice(-3);
+   return res;
 }
 
 

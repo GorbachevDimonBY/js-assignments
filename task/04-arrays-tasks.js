@@ -514,11 +514,12 @@ function getIntervalArray(start, end) {
  *   [ 1, 1, 2, 2, 3, 3, 4, 4] => [ 1, 2, 3, 4]
  */
 function distinct(arr) {
-   let newArr = [];
-   arr.filter(item => {
-      if(!newArr.includes(item)) newArr.push(item);
-   })
-   return newArr;
+   let array = [];
+   arr.filter(elem => {
+       if (array.indexOf(elem) == -1)
+           array.push(elem);
+   });
+   return array;
 }
 
 /**

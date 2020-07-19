@@ -108,113 +108,119 @@ function fromJSON(proto, json) {
  *  For more examples see unit tests.
  */
 
-let CSS_SELECTOR_ERRORS = [
-    'Element, id and pseudo-element should not occur more then one time inside the selector',
-    'Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element'
-];
-function cssSelector(fromCombine ='') {
-    
-    const values = {
-        element: '',
-        id: '',
-        class: '',
-        attr: '',
-        pseudoClass: '',
-        pseudoElement: ''
-    };
-        
-    function order(currentPart) {
-        let b = false;
-        for (let i in values)
-            if (values.hasOwnProperty(i))
-                if (b && values[i])
-                    throw new Error(CSS_SELECTOR_ERRORS[1]);
-                else if (!b && i === currentPart)
-                    b = true;
-    } 
-    
-    this.element = function(value) {
-        if (values.element)
-            throw new Error(CSS_SELECTOR_ERRORS[0]);
-        order('element');
-        values.element = value;
-        return this;
-    };
-    
-    this.id = function(value) {
-        if (values.id)
-            throw new Error(CSS_SELECTOR_ERRORS[0]);
-        order('id');
-        values.id = '#' + value;
-        return this;
-    };
-    
-    this.class = function(value) {
-        order('class');
-        values.class += '.' + value;
-        return this;
-    };
-    
-    this.attr = function(value) {
-        order('attr');
-        values.attr += '[' + value + ']';
-        return this;
-    };
-    
-    this.pseudoClass = function(value) {
-        order('pseudoClass');
-        values.pseudoClass += ':' + value;
-        return this;
-    };
-    
-    this.pseudoElement = function(value) {
-        if (values.pseudoElement)
-            throw new Error(CSS_SELECTOR_ERRORS[0]);
-        order('pseudoElement');
-        values.pseudoElement = '::' + value;
-        return this;
-    };
-    
-    this.stringify = function() {
-        let result = '';
-        for (let i in values)
-            if (values.hasOwnProperty(i))
-                result += values[i];
-        return fromCombine + result;
-    };
-    
-}
+let order = ['element', 'id', 'class', 'attr', 'pseudoClass', 'pseudoElement'];
 
 const cssSelectorBuilder = {
 
-    element: function(value) {
-        return new cssSelector().element(value);
+    selectors: [],
+    isUnique: function (type) {
+        for (let sel of this.selectors) {
+            if (sel.type === type) {
+                return false;
+            }
+        }
+        return true;
+    },
+    isCorrectOrder: function () {
+        for (let i = 0; i < this.selectors.length - 1; i++) {
+            if (order.indexOf(this.selectors[i].type) > order.indexOf(this.selectors[i + 1].type)) {
+                return false;
+            }
+        }
+        return true;
     },
 
-    id: function(value) {
-        return new cssSelector().id(value);
+    addSelector: function (type, value) {
+        let newBuilder = Object.create(this);
+        newBuilder.selectors = Array.from(this.selectors);
+        newBuilder.selectors.push(new Selector(type, value));
+        if (!newBuilder.isCorrectOrder()) {
+            throw "Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element";
+        }
+        return newBuilder;
     },
 
-    class: function(value) {
-        return new cssSelector().class(value);
+    element: function (value) {
+        if (!this.isUnique('element')) {
+            throw "Element, id and pseudo-element should not occur more then one time inside the selector";
+        }
+        return this.addSelector('element', value);
     },
 
-    attr: function(value) {
-        return new cssSelector().attr(value);
+    id: function (value) {
+        if (!this.isUnique('id')) {
+            throw "Element, id and pseudo-element should not occur more then one time inside the selector";
+        }
+        return this.addSelector('id', value);
     },
 
-    pseudoClass: function(value) {
-        return new cssSelector().pseudoClass(value);
+    class: function (value) {
+        return this.addSelector('class', value);
     },
 
-    pseudoElement: function(value) {
-        return new cssSelector().pseudoElement(value);
+    attr: function (value) {
+        return this.addSelector('attr', value);
     },
 
-    combine: function(selector1, combinator, selector2) {
-        return new cssSelector(selector1.stringify() + ` ${combinator} ` + selector2.stringify());
+    pseudoClass: function (value) {
+        return this.addSelector('pseudoClass', value);
+    },
+
+    pseudoElement: function (value) {
+        if (!this.isUnique('pseudoElement')) {
+            throw "Element, id and pseudo-element should not occur more then one time inside the selector";
+        }
+        return this.addSelector('pseudoElement', value);
+    },
+    stringify: function () {
+        let str = "";
+        for (let sel of this.selectors) {
+            str += sel.print();
+        }
+        return str;
+    },
+    combine: function (selector1, combinator, selector2) {
+        let newBuilder = Object.create(this);
+        newBuilder.selectors = Array.from(selector1.selectors);
+        newBuilder.selectors.push(new Selector('combinator', combinator));
+        for (let sel of selector2.selectors) {
+            newBuilder.selectors.push(sel);
+        }
+        return newBuilder;
     },
 };
+
+function Selector(type, text) {
+    this.type = type;
+    this.text = text;
+    this.print = function () {
+        let str;
+        switch (type) {
+            case 'combinator':
+                str = " " + this.text + " ";
+                break;
+            case 'element':
+                str = this.text;
+                break;
+            case 'id':
+                str = "#" + this.text;
+                break;
+            case 'class':
+                str = "." + this.text;
+                break;
+            case 'attr':
+                str = "[" + this.text + "]";
+                break;
+            case 'pseudoClass':
+                str = ":" + this.text;
+                break;
+            case 'pseudoElement':
+                str = "::" + this.text;
+                break;
+        }
+        return str;
+    }
+}
 
 
 module.exports = {
